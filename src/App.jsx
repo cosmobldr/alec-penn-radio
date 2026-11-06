@@ -67,6 +67,7 @@ const STYLE = {
   "The Revival Series":{ glow:"#EBD9A0", mood:"uplifted" },
   "Shorts":{ glow:"#FF5A6E", mood:"quick hits" },
   "Her Majesty":{ glow:"#FF4FA3", mood:"royalty" },
+  "The Personal Collection":{ glow:"#3FB489", mood:"from the vault" },
 };
 const styleOf = (name) => STYLE[name] || { glow:"#C2A24D", mood:"on air" };
 let GENRES = [{ name:"Full Station", slug:"all", ...styleOf("Full Station") }];
@@ -1227,11 +1228,13 @@ export default function AlecPennRadio() {
                       // each special broadcast has its own look
                       const look=g.slug==="her-majesty"
                         ? { background:on?"#FF2E93":"#FF4FA3",border:`2px solid ${on?"#FFFFFF":"#FF8CC6"}`,color:"#FFFFFF",fontFamily:"'Permanent Marker',cursive",fontSize:mobile?22:14,letterSpacing:"0.04em",textTransform:"none",textShadow:"2px 2px 0 #0A0509, -1px -1px 0 #0A0509",boxShadow:on?"0 0 22px #FF4FA3cc":"0 0 10px #FF4FA355" }
+                        : g.slug==="personal"
+                        ? { background:"radial-gradient(ellipse at 30% 25%,#5FC09A 0%,#1E7A5A 38%,#0B3F2E 100%)",border:`2px solid ${on?"#FFF1C4":"#D4AF55"}`,color:"#F2D27A",textShadow:"0 1px 0 #3a2a05, 0 0 8px #00000088",boxShadow:on?"0 0 24px #3FB489cc, inset 0 0 0 1px #F2D27A88":"0 0 10px #3FB48955, inset 0 0 0 1px #D4AF5566" }
                         : g.slug==="revival"
                         ? { color:"#9A6F12",border:`1px solid ${on?"#FFFFFF":"#F3E3B0"}`,boxShadow:on?"0 0 26px #FFFFFFcc, 0 0 10px #EBD9A0":"0 0 14px #FFFFFF66" }
                         : { background:on?C.gold:"transparent",border:`1px solid ${on?C.gold:C.deepGold+"66"}`,color:on?C.black:C.warmGold };   // SHORTS follows the vibe you picked
                       const label=g.slug==="youtube-shorts"?"Shorts":g.name;
-                      return <button key={g.name} onClick={()=>handleGenre(g)} className={`sb sb-${g.slug}${on?" on":""}`} style={{ ...base,...look }}>{g.slug==="her-majesty"?"♛ ":"★ "}{label}</button>;
+                      return <button key={g.name} onClick={()=>handleGenre(g)} className={`sb sb-${g.slug}${on?" on":""}`} style={{ ...base,...look }}>{g.slug==="her-majesty"?"♛ ":g.slug==="personal"?"◆ ":"★ "}{label}</button>;
                     })}
                   </div>
                 </div>
