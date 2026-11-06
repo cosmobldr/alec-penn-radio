@@ -860,6 +860,9 @@ export default function AlecPennRadio() {
   const [volume,setVolume]=useState(100);
   const [kids,setKids]=useState(()=>{ try{ return localStorage.getItem("aprKids")==="1"; }catch(e){ return false; } });
   useEffect(()=>{ try{ localStorage.setItem("aprKids",kids?"1":"0"); }catch(e){} },[kids]);
+  // the switch only shows once songs have been checked for swear words
+  const [kidsReady,setKidsReady]=useState(false);
+  useEffect(()=>{ loadStation().then(d=>setKidsReady(d.all.tracks.some(t=>t.x?.length))).catch(()=>{}); },[]);
   const [easterEgg,setEasterEgg]=useState(null);
   const [keyBuffer,setKeyBuffer]=useState("");
   const konami=useRef([]);
@@ -1262,13 +1265,13 @@ export default function AlecPennRadio() {
                 </div>
               )}
 
-              <button onClick={()=>setKids(k=>!k)} aria-pressed={kids} title="Kids mode: swear words drop out, like a radio edit"
+              {kidsReady&&<button onClick={()=>setKids(k=>!k)} aria-pressed={kids} title="Kids mode: swear words drop out, like a radio edit"
                 style={{ marginTop:14,display:"flex",alignItems:"center",gap:10,width:mobile?"100%":undefined,background:kids?"#1d3b2f":"transparent",border:`1px solid ${kids?"#7FD8A8":C.deepGold+"55"}`,color:kids?"#BFF2D4":C.warmGold,borderRadius:mobile?6:4,padding:mobile?"12px 14px":"7px 14px",cursor:"pointer",fontFamily:"'JetBrains Mono',monospace",fontSize:mobile?12:10,letterSpacing:"0.1em",textAlign:"left" }}>
                 <span style={{ width:30,height:16,borderRadius:9,background:kids?"#7FD8A8":"#3a3326",position:"relative",flex:"none",transition:"background .2s" }}>
                   <span style={{ position:"absolute",top:2,left:kids?16:2,width:12,height:12,borderRadius:"50%",background:"#0A0806",transition:"left .2s" }}/>
                 </span>
                 <span>KIDS MODE {kids?"ON":"OFF"}<span style={{ display:"block",fontSize:mobile?10:8,opacity:.75,letterSpacing:"0.04em",marginTop:2 }}>{kids?"Swear words drop out, like a radio edit":"Tap for clean radio edits"}</span></span>
-              </button>
+              </button>}
               <OfflineSaver channel={activeChannel} name={genre} mobile={mobile} glow={activeGlow}/>
 
               {/* Keyboard hints */}
