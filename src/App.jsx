@@ -156,8 +156,9 @@ function AnimatedSeal({ size=120, color=C.gold, triggered=false }) {
 }
 
 /* ── ARCHIVE RADIO (streams the APR library from archive.org on a shared clock) ── */
-function ArchiveRadio({ playing, channel, volume, onTrack, onProgress }) {
+function ArchiveRadio({ playing, channel, volume, kids, onTrack, onProgress }) {
   const audioRef=useRef(null);
+  const kidsRef=useRef(kids);
   const skewRef=useRef(0);        // personal skips push you ahead on the schedule
   const infoRef=useRef(null);
   const volRef=useRef(volume);
@@ -242,6 +243,25 @@ function ArchiveRadio({ playing, channel, volume, onTrack, onProgress }) {
   },[playing]);
 
   useEffect(()=>{ volRef.current=volume; applyVolume(); },[volume]);
+
+  // KIDS MODE: songs carry the spots where a swear word is sung ("x": [[start,end],...]).
+  // With kids mode on, the sound drops out right over those words, like a radio edit. Everyone stays on the same clock.
+  useEffect(()=>{
+    kidsRef.current=kids;
+    let raf=0, timer=0;
+    const check=()=>{
+      const a=audioRef.current, x=infoRef.current?.track?.x;
+      if(!a) return;
+      if(!kidsRef.current||!x?.length){ if(a.muted) a.muted=false; return; }
+      const t=a.currentTime, lead=document.hidden?0.45:0.12;   // background tabs check less often, so start the dropout a bit earlier
+      a.muted=x.some(([s0,e0])=>t>=s0-lead&&t<=e0+0.12);
+    };
+    const loop=()=>{ check(); raf=requestAnimationFrame(loop); };
+    raf=requestAnimationFrame(loop);
+    timer=setInterval(check,50);            // keeps working when the tab is in the background
+    const a=audioRef.current; a?.addEventListener("timeupdate",check);
+    return()=>{ cancelAnimationFrame(raf); clearInterval(timer); a?.removeEventListener("timeupdate",check); const b=audioRef.current; if(b) b.muted=false; };
+  },[kids]);
 
   useEffect(()=>{
     window._aprSkip=()=>{ const info=infoRef.current; if(!info||!playingRef.current) return;
@@ -838,6 +858,8 @@ export default function AlecPennRadio() {
   const [nowPlaying,setNowPlaying]=useState(null);
   const [thumb,setThumb]=useState(null);
   const [volume,setVolume]=useState(100);
+  const [kids,setKids]=useState(()=>{ try{ return localStorage.getItem("aprKids")==="1"; }catch(e){ return false; } });
+  useEffect(()=>{ try{ localStorage.setItem("aprKids",kids?"1":"0"); }catch(e){} },[kids]);
   const [easterEgg,setEasterEgg]=useState(null);
   const [keyBuffer,setKeyBuffer]=useState("");
   const konami=useRef([]);
@@ -1240,6 +1262,13 @@ export default function AlecPennRadio() {
                 </div>
               )}
 
+              <button onClick={()=>setKids(k=>!k)} aria-pressed={kids} title="Kids mode: swear words drop out, like a radio edit"
+                style={{ marginTop:14,display:"flex",alignItems:"center",gap:10,width:mobile?"100%":undefined,background:kids?"#1d3b2f":"transparent",border:`1px solid ${kids?"#7FD8A8":C.deepGold+"55"}`,color:kids?"#BFF2D4":C.warmGold,borderRadius:mobile?6:4,padding:mobile?"12px 14px":"7px 14px",cursor:"pointer",fontFamily:"'JetBrains Mono',monospace",fontSize:mobile?12:10,letterSpacing:"0.1em",textAlign:"left" }}>
+                <span style={{ width:30,height:16,borderRadius:9,background:kids?"#7FD8A8":"#3a3326",position:"relative",flex:"none",transition:"background .2s" }}>
+                  <span style={{ position:"absolute",top:2,left:kids?16:2,width:12,height:12,borderRadius:"50%",background:"#0A0806",transition:"left .2s" }}/>
+                </span>
+                <span>KIDS MODE {kids?"ON":"OFF"}<span style={{ display:"block",fontSize:mobile?10:8,opacity:.75,letterSpacing:"0.04em",marginTop:2 }}>{kids?"Swear words drop out, like a radio edit":"Tap for clean radio edits"}</span></span>
+              </button>
               <OfflineSaver channel={activeChannel} name={genre} mobile={mobile} glow={activeGlow}/>
 
               {/* Keyboard hints */}
@@ -1395,7 +1424,7 @@ export default function AlecPennRadio() {
         <div style={{ fontFamily:"'JetBrains Mono',monospace",fontSize:mobile?11:9,color:`${C.deepGold}66` }}>© 2026 ALEC PENN RADIO</div>
       </footer>
 
-      <ArchiveRadio playing={tuned} channel={activeChannel} volume={volume} onTrack={handleTrack} onProgress={handleProgress}/>
+      <ArchiveRadio playing={tuned} channel={activeChannel} volume={volume} kids={kids} onTrack={handleTrack} onProgress={handleProgress}/>
     </div>
   );
 }
