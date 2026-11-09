@@ -837,6 +837,25 @@ export default function AlecPennRadio() {
   const setTheme=useCallback((t)=>{ setThemeState(t); try{ localStorage.setItem("aprTheme",t); }catch(e){} },[]);
   const mobile=useIsMobile();
   const [tuned,setTuned]=useState(false);
+  // SLEEP TIMER: tap to cycle Off -> 15 -> 30 -> 60 -> 90 minutes. The music fades out over the last 20 seconds, then stops.
+  const [sleepAt,setSleepAt]=useState(0);          // time (ms) the radio turns itself off; 0 = no timer
+  const [sleepLeft,setSleepLeft]=useState(0);      // seconds left, for the label and the fade
+  const cycleSleep=()=>setSleepAt(at=>{
+    const left=at?(at-Date.now())/60000:0, steps=[15,30,60,90];
+    const next=steps.find(m=>m>left+0.5);          // the next longer option, or off after 90
+    return next?Date.now()+next*60000:0;
+  });
+  useEffect(()=>{
+    if(!sleepAt){ setSleepLeft(0); return; }
+    const tick=()=>{
+      const left=Math.max(0,Math.round((sleepAt-Date.now())/1000));
+      setSleepLeft(left);
+      if(left<=0){ setTuned(false); setSleepAt(0); }
+    };
+    tick(); const id=setInterval(tick,1000); return()=>clearInterval(id);
+  },[sleepAt]);
+  useEffect(()=>{ if(!tuned) setSleepAt(0); },[tuned]);   // turning the radio off cancels the timer
+  const sleepFade=sleepAt&&sleepLeft<=20?Math.max(0,sleepLeft/20):1;
   const [tuning,setTuning]=useState(false);
   const [showStatic,setShowStatic]=useState(false);
   const [station,setStation]=useState(null);
@@ -1272,6 +1291,11 @@ export default function AlecPennRadio() {
                 </span>
                 <span>KIDS MODE {kids?"ON":"OFF"}<span style={{ display:"block",fontSize:mobile?10:8,opacity:.75,letterSpacing:"0.04em",marginTop:2 }}>{kids?"Swear words drop out, like a radio edit":"Tap for clean radio edits"}</span></span>
               </button>}
+              {tuned&&<button onClick={cycleSleep} aria-label={sleepAt?`Sleep timer: ${Math.ceil(sleepLeft/60)} minutes left. Tap to change`:"Set a sleep timer"} title="Sleep timer: the radio fades out and stops by itself"
+                style={{ marginTop:10,display:"flex",alignItems:"center",gap:10,width:mobile?"100%":undefined,background:sleepAt?"#22263f":"transparent",border:`1px solid ${sleepAt?"#9AA8FF":C.deepGold+"55"}`,color:sleepAt?"#D5DAFF":C.warmGold,borderRadius:mobile?6:4,padding:mobile?"12px 14px":"7px 14px",cursor:"pointer",fontFamily:"'JetBrains Mono',monospace",fontSize:mobile?12:10,letterSpacing:"0.1em",textAlign:"left" }}>
+                <span aria-hidden="true" style={{ fontSize:mobile?18:15,width:30,textAlign:"center",flex:"none" }}>☾</span>
+                <span>SLEEP TIMER {sleepAt?(sleepLeft>=60?`${Math.ceil(sleepLeft/60)} MIN`:`${sleepLeft}s`):"OFF"}<span style={{ display:"block",fontSize:mobile?10:8,opacity:.75,letterSpacing:"0.04em",marginTop:2 }}>{sleepAt?"Fades out and stops. Tap to change":"Tap: 15, 30, 60 or 90 minutes"}</span></span>
+              </button>}
               <OfflineSaver channel={activeChannel} name={genre} mobile={mobile} glow={activeGlow}/>
 
               {/* Keyboard hints */}
@@ -1427,7 +1451,7 @@ export default function AlecPennRadio() {
         <div style={{ fontFamily:"'JetBrains Mono',monospace",fontSize:mobile?11:9,color:`${C.deepGold}66` }}>© 2026 ALEC PENN RADIO</div>
       </footer>
 
-      <ArchiveRadio playing={tuned} channel={activeChannel} volume={volume} kids={kids} onTrack={handleTrack} onProgress={handleProgress}/>
+      <ArchiveRadio playing={tuned} channel={activeChannel} volume={volume*sleepFade} kids={kids} onTrack={handleTrack} onProgress={handleProgress}/>
     </div>
   );
 }
