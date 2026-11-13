@@ -1289,8 +1289,12 @@ export default function AlecPennRadio() {
                 <span style={{ width:30,height:16,borderRadius:9,background:kids?"#7FD8A8":"#3a3326",position:"relative",flex:"none",transition:"background .2s" }}>
                   <span style={{ position:"absolute",top:2,left:kids?16:2,width:12,height:12,borderRadius:"50%",background:"#0A0806",transition:"left .2s" }}/>
                 </span>
-                <span>KIDS MODE {kids?"ON":"OFF"}<span style={{ display:"block",fontSize:mobile?10:8,opacity:.75,letterSpacing:"0.04em",marginTop:2 }}>{kids?(activeChannel?.tracks.some(t=>!t.k)?"Some songs on this channel aren't checked yet":"Swear words drop out, like a radio edit"):"Tap for clean radio edits"}</span></span>
+                <span>KIDS MODE {kids?"ON":"OFF"}<span style={{ display:"block",fontSize:mobile?10:8,opacity:.75,letterSpacing:"0.04em",marginTop:2 }}>{kids?("Swear words drop out, like a radio edit"):"Tap for clean radio edits"}</span></span>
               </button>}
+              {kidsReady&&kids&&activeChannel?.tracks.some(t=>!t.k)&&<div role="note"
+                style={{ marginTop:8,maxWidth:mobile?undefined:300,background:"#3a2a10",border:"1px solid #E8B04B",color:"#FFE2A8",borderRadius:mobile?6:4,padding:mobile?"10px 12px":"7px 10px",fontFamily:"'JetBrains Mono',monospace",fontSize:mobile?11:9,letterSpacing:"0.03em",lineHeight:1.45 }}>
+                ⚠ Heads up: {activeChannel.tracks.every(t=>!t.k)?"songs on this channel haven't":"some songs on this channel haven't"} been checked for swear words yet, so Kids Mode can't clean them. Listen first before playing it for kids.
+              </div>}
               {tuned&&<button onClick={cycleSleep} aria-label={sleepAt?`Sleep timer: ${Math.ceil(sleepLeft/60)} minutes left. Tap to change`:"Set a sleep timer"} title="Sleep timer: the radio fades out and stops by itself"
                 style={{ marginTop:10,display:"flex",alignItems:"center",gap:10,width:mobile?"100%":undefined,background:sleepAt?"#22263f":"transparent",border:`1px solid ${sleepAt?"#9AA8FF":C.deepGold+"55"}`,color:sleepAt?"#D5DAFF":C.warmGold,borderRadius:mobile?6:4,padding:mobile?"12px 14px":"7px 14px",cursor:"pointer",fontFamily:"'JetBrains Mono',monospace",fontSize:mobile?12:10,letterSpacing:"0.1em",textAlign:"left" }}>
                 <span aria-hidden="true" style={{ fontSize:mobile?18:15,width:30,textAlign:"center",flex:"none" }}>☾</span>
