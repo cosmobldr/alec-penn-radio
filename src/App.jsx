@@ -197,7 +197,7 @@ function ArchiveRadio({ playing, channel, volume, kids, onTrack, onProgress }) {
     applyVolume();
     onTrack?.(info);
     if("mediaSession" in navigator){
-      try{ navigator.mediaSession.metadata=new window.MediaMetadata({ title:info.track.t, artist:"Alec Penn Radio", album:info.track.genre,
+      try{ navigator.mediaSession.metadata=new window.MediaMetadata({ title:maskTitle(info.track.t,kidsRef.current), artist:"Alec Penn Radio", album:info.track.genre,
         artwork:[{ src:info.track.cover, sizes:"320x320", type:"image/webp" }] }); }catch(e){}
     }
     if(playingRef.current){
@@ -560,7 +560,7 @@ function SongCard({ song, glow, mobile, onClose }) {
             <span style={{ fontFamily:"'JetBrains Mono',monospace",fontSize:9,letterSpacing:"0.18em",color:glow }}>● NOW SPINNING</span>
             <button onClick={onClose} aria-label="Close" style={{ background:"none",border:"none",color:C.deepGold,fontSize:16,cursor:"pointer",padding:0,lineHeight:1 }}>×</button>
           </div>
-          <div style={{ fontFamily:"'Bebas Neue',sans-serif",fontSize:song.t.length>22?24:30,lineHeight:0.95,color:C.cream,letterSpacing:"0.03em",marginTop:12,wordBreak:"break-word" }}>{song.t}</div>
+          <div style={{ fontFamily:"'Bebas Neue',sans-serif",fontSize:song.t.length>22?24:30,lineHeight:0.95,color:C.cream,letterSpacing:"0.03em",marginTop:12,wordBreak:"break-word" }}><KidsTitle t={song.t} kids={kids}/></div>
           <div style={{ fontFamily:"'JetBrains Mono',monospace",fontSize:10,letterSpacing:"0.14em",color:C.warmGold,marginTop:8,textTransform:"uppercase" }}>{song.station} · 111.1 IM</div>
           <div style={{ fontFamily:"'JetBrains Mono',monospace",fontSize:9,letterSpacing:"0.12em",color:C.deepGold,marginTop:4 }}>ALEC PENN · CC0 · FREE FOREVER</div>
           <div style={{ flex:1 }}/>
@@ -576,7 +576,15 @@ function SongCard({ song, glow, mobile, onClose }) {
 /* ── 3D TURNTABLE ── */
 let _webgl=null;
 function hasWebGL(){ if(_webgl!==null) return _webgl; try{ const c=document.createElement("canvas"); const gl=window.WebGLRenderingContext&&(c.getContext("webgl2")||c.getContext("webgl")); _webgl=!!gl; gl?.getExtension("WEBGL_lose_context")?.loseContext(); }catch(e){ _webgl=false; } return _webgl; }
-function Turntable({ playing, cover, glow, progress, mobile, height, song }) {
+// Kids Mode: swear words in song titles get blurred on screen (and starred where blur can't show, like the lock screen)
+const SWEAR=/\b(fuck\w*|bullshit|shit\w*|bitch\w*|damn\w*)/gi;
+const maskTitle=(t,kids)=>kids&&t?t.replace(SWEAR,w=>w[0]+"*".repeat(w.length-1)):t;
+function KidsTitle({ t, kids }) {
+  if(!kids||!t) return t;
+  return t.split(SWEAR).map((part,i)=>i%2?<span key={i} aria-label={part[0]+"***"} style={{ filter:"blur(6px)",userSelect:"none" }}>{part}</span>:part);
+}
+
+function Turntable({ playing, cover, glow, progress, mobile, height, song, kids }) {
   const [card,setCard]=useState(false);
   const songRef=useRef(song); songRef.current=song;
   useEffect(()=>{ if(!card) return; const t=setTimeout(()=>setCard(false),12000); return()=>clearTimeout(t); },[card,song?.t]);
@@ -1191,7 +1199,7 @@ export default function AlecPennRadio() {
                 AI co-created. Multi-genre. Free for everyone.
               </p>
 
-              {mobile&&<div style={{ margin:"0 -16px 14px" }}><Turntable playing={tuned} cover={thumb} glow={activeGlow} progress={progress[1]?progress[0]/progress[1]:0} mobile={true} height={250} song={onAirInfo&&!onAirInfo.track.jingle?{ t:onAirInfo.track.t, station:onAirInfo.track.genre||genre, cover:onAirInfo.track.cover||thumb }:null}/></div>}
+              {mobile&&<div style={{ margin:"0 -16px 14px" }}><Turntable playing={tuned} cover={thumb} glow={activeGlow} progress={progress[1]?progress[0]/progress[1]:0} mobile={true} height={250} song={onAirInfo&&!onAirInfo.track.jingle?{ t:onAirInfo.track.t, station:onAirInfo.track.genre||genre, cover:onAirInfo.track.cover||thumb }:null} kids={kids}/></div>}
 
               {/* Freq + oscilloscope + album art */}
               <div style={{ display:"flex",alignItems:"center",gap:12,marginBottom:20,flexWrap:"wrap" }}>
@@ -1237,13 +1245,13 @@ export default function AlecPennRadio() {
                     <div style={{ width:5,height:5,borderRadius:"50%",background:activeGlow,animation:"pulse-dot 1s infinite",flexShrink:0 }}/>
                     <span style={{ fontFamily:"'JetBrains Mono',monospace",fontSize:mobile?11:9,color:C.sageTeal,letterSpacing:"0.14em" }}>NOW PLAYING · {onAirInfo.track.genre.toUpperCase()}</span>
                   </div>
-                  <div style={{ fontFamily:"'Bebas Neue',sans-serif",fontSize:mobile?24:30,color:C.cream,letterSpacing:"0.05em",lineHeight:1.05,marginTop:4,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>{onAirInfo.track.t}</div>
+                  <div style={{ fontFamily:"'Bebas Neue',sans-serif",fontSize:mobile?24:30,color:C.cream,letterSpacing:"0.05em",lineHeight:1.05,marginTop:4,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}><KidsTitle t={onAirInfo.track.t} kids={kids}/></div>
                   <div style={{ height:3,background:`${C.deepGold}22`,borderRadius:2,marginTop:8,overflow:"hidden" }}>
                     <div style={{ height:"100%",width:`${progress[1]?Math.min(100,progress[0]/progress[1]*100):0}%`,background:`linear-gradient(90deg,${C.teal},${activeGlow})`,transition:"width 0.3s linear" }}/>
                   </div>
                   <div style={{ display:"flex",justifyContent:"space-between",marginTop:5,fontFamily:"'JetBrains Mono',monospace",fontSize:mobile?11:9,color:C.deepGold }}>
                     <span>{fmtTime(progress[0])} / {fmtTime(progress[1])}</span>
-                    <span style={{ color:C.mistTeal,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"65%" }}>UP NEXT · {onAirInfo.next.t}</span>
+                    <span style={{ color:C.mistTeal,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"65%" }}>UP NEXT · <KidsTitle t={onAirInfo.next.t} kids={kids}/></span>
                   </div>
                   {!onAirInfo.track.jingle&&<a href={`https://edensgate.art/?q=${encodeURIComponent(onAirInfo.track.t)}`} target="_blank" rel="noreferrer"
                     style={{ display:"inline-block",marginTop:8,fontFamily:"'JetBrains Mono',monospace",fontSize:mobile?11:9,letterSpacing:"0.12em",color:C.paleGold,textDecoration:"none",borderBottom:`1px solid ${C.deepGold}66`,paddingBottom:1 }}>
@@ -1319,7 +1327,7 @@ export default function AlecPennRadio() {
             <div style={{ display:"flex",flexDirection:mobile?"row":"column",alignItems:"center",gap:mobile?16:20,justifyContent:mobile?"space-between":"center",flexWrap:mobile?"wrap":"nowrap" }}>
               {!mobile&&(
                 <div style={{ width:420,display:"flex",flexDirection:"column",alignItems:"center",gap:6 }}>
-                  <Turntable playing={tuned} cover={thumb} glow={activeGlow} progress={progress[1]?progress[0]/progress[1]:0} mobile={false} height={330} song={onAirInfo&&!onAirInfo.track.jingle?{ t:onAirInfo.track.t, station:onAirInfo.track.genre||genre, cover:onAirInfo.track.cover||thumb }:null}/>
+                  <Turntable playing={tuned} cover={thumb} glow={activeGlow} progress={progress[1]?progress[0]/progress[1]:0} mobile={false} height={330} song={onAirInfo&&!onAirInfo.track.jingle?{ t:onAirInfo.track.t, station:onAirInfo.track.genre||genre, cover:onAirInfo.track.cover||thumb }:null} kids={kids}/>
                   <div style={{ display:"flex",gap:18,alignItems:"baseline",fontFamily:"'JetBrains Mono',monospace" }}>
                     <span style={{ fontSize:18,color:C.gold }}>{station?station.total.toLocaleString():"—"}</span>
                     <span style={{ fontSize:mobile?11:9,color:C.sageTeal,letterSpacing:"0.14em" }}>TRACKS ON AIR</span>
@@ -1344,7 +1352,7 @@ export default function AlecPennRadio() {
           </div>
 
           {/* Broadcast ticker */}
-          <BroadcastTicker active={tuned} nowPlaying={nowPlaying}/>
+          <BroadcastTicker active={tuned} nowPlaying={maskTitle(nowPlaying,kids)}/>
         </div>
       </section>
 
